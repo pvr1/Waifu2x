@@ -9,6 +9,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
+# +++++++++++++++++++++++++++++++++++++
+#           SSIM
+# -------------------------------------
+
 def gaussian(window_size, sigma):
     gauss = torch.Tensor([exp(-(x - window_size // 2) ** 2 / float(2 * sigma ** 2)) for x in range(window_size)])
     return gauss / gauss.sum()
@@ -102,11 +106,7 @@ def msssim(img1, img2, window_size=11, size_average=True):
         raise RuntimeError('Input images must have four dimensions, not %d' %
                            len(img1.size()))
 
-    if type(img1) is not Variable or type(img2) is not Variable:
-        img1 = Variable(img1)
-        img2 = Variable(img2)
-
-    weights = Variable(torch.FloatTensor([0.0448, 0.2856, 0.3001, 0.2363, 0.1333]))
+    weights = torch.tensor([0.0448, 0.2856, 0.3001, 0.2363, 0.1333], dtype=img1.dtype)
     if img1.is_cuda:
         weights = weights.cuda(img1.get_device())
 
@@ -158,3 +158,16 @@ def calc_psnr(sr, hr, scale=0, benchmark=False):
     mse = valid.pow(2).mean()
 
     return -10 * math.log10(mse)
+
+
+# +++++++++++++++++++++++++++++++++++++
+#           PSNR      
+# -------------------------------------
+from torch import nn
+
+
+def psnr(predict, target):
+    with torch.no_grad():
+        criteria = nn.MSELoss()
+        mse = criteria(predict, target)
+        return -10 * torch.log10(mse)
